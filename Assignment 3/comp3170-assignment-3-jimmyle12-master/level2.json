@@ -1,0 +1,15 @@
+{
+	"name" : "Rectangle text",
+	"map" : {
+		"width" : 2,
+		"depth" : 3,
+		"height" : [
+			0, 1,
+			2, 3,
+			4, 5
+		]
+	},
+	
+	"waterHeight" : 0,
+
+}
