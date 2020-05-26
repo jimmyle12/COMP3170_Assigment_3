@@ -109,6 +109,7 @@ public class Assignment3 extends JFrame implements GLEventListener {
 	private SceneObject lightPivot;
 	private Light light;
 	private HeightMap map;
+	private HeightMap map2;
 
 
 	public Assignment3(JSONObject level) {
@@ -160,8 +161,12 @@ public class Assignment3 extends JFrame implements GLEventListener {
 
 		// enable depth testing and backface culling
 
-		gl.glEnable(GL.GL_DEPTH_TEST);
+//		gl.glEnable(GL.GL_DEPTH_TEST);
+//		gl.glEnable(GL.GL_CULL_FACE);
+		gl.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT);
 		gl.glEnable(GL.GL_CULL_FACE);
+		gl.glCullFace(GL.GL_BACK);
+		gl.glEnable(GL.GL_DEPTH_TEST);
 
 		// Load shaders
 
@@ -172,6 +177,7 @@ public class Assignment3 extends JFrame implements GLEventListener {
 		this.normalShader = loadShader(NORMAL_VERTEX_SHADER, NORMAL_FRAGMENT_SHADER);
 		this.diffuseVertexLightingShader = loadShader(DIFFUSE_VERTEX_LIGHTING_VERTEX_SHADER, DIFFUSE_VERTEX_LIGHTING_FRAGMENT_SHADER);
 		this.diffuseFragmentLightingShader = loadShader(DIFFUSE_FRAGMENT_LIGHTING_VERTEX_SHADER, DIFFUSE_FRAGMENT_LIGHTING_FRAGMENT_SHADER);
+		this.specularFragmentLightingShader = loadShader(SPECULAR_FRAGMENT_LIGHTING_VERTEX_SHADER, SPECULAR_FRAGMENT_LIGHTING_FRAGMENT_SHADER);
 		// Allocate matrices
 
 		this.mvpMatrix = new Matrix4f();
@@ -200,9 +206,14 @@ public class Assignment3 extends JFrame implements GLEventListener {
 		int depth = jsonMap.getInt("depth");
 		JSONArray heights = jsonMap.getJSONArray("height");
 
-		map = new HeightMap(simpleShader, width, depth, heights);
+		map = new HeightMap(diffuseFragmentLightingShader, width, depth, heights);
 		map.setParent(this.root);
 		map.localMatrix.scale(5,1,5);
+
+		map2 = new HeightMap(diffuseFragmentLightingShader, width, depth, heights);
+//		map2.setParent(this.root);
+		map2.localMatrix.scale(5,1,5);
+		map2.localMatrix.translate(1, 0, 1);
 
 		this.cameraPivot = new SceneObject();
 		this.cameraPivot.setParent(this.root);
@@ -251,15 +262,15 @@ public class Assignment3 extends JFrame implements GLEventListener {
 	private float cameraDistance = 10;
 	private float cameraHeight = 1;
 
-	private float cameraFOV = 4;
+	private float cameraFOV = 10;
 	private float cameraAspect = (float)screenWidth / screenHeight;
 	private float cameraNear = 0.1f;
 	private float cameraFar = 20.0f;
 	private Vector4f viewDir = new Vector4f();
 
 	private float lightDistance = 5;
-	private float lightYaw = TAU/4;
-	private float lightPitch = 0;
+	private float lightYaw = -TAU/4;
+	private float lightPitch = -TAU/8;
 	private Vector4f lightDir = new Vector4f();
 
 
@@ -327,6 +338,9 @@ public class Assignment3 extends JFrame implements GLEventListener {
 		this.light.getWorldMatrix(this.lightMatrix);
 		this.lightDir.mul(this.lightMatrix);
 		map.setLightDir(lightDir);
+		map.setViewDir(viewDir);
+		map2.setLightDir(lightDir);
+		map2.setViewDir(viewDir);
 
 		input.clear();
 	}
@@ -361,7 +375,7 @@ public class Assignment3 extends JFrame implements GLEventListener {
 
 		// set the projection matrix
 		float width = cameraAspect * cameraFOV;
-		this.projectionMatrix.setOrtho(-width/2, width/2, -cameraFOV/2, cameraFOV/2, cameraNear, cameraFar);
+		this.projectionMatrix.setOrtho(-width/2, width/2, -cameraFOV/2, cameraFOV/2, cameraFar, cameraNear);
 
 		// multiply the matrices together
 		this.mvpMatrix.identity();

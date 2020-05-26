@@ -27,7 +27,7 @@ public class HeightMap extends SceneObject {
     private Vector3f[] barycentric;
     private int barycentricBuffer;
 
-    private float[] colour = {0.1f, 0.8f, 0.1f, 0f};
+    private float[] colour = {0.1f, 0.8f, 0.1f};
     private float specularity = 10;
 
     private int width;
@@ -60,9 +60,13 @@ public class HeightMap extends SceneObject {
         System.out.println("n squares = " + nSquares);
 
         vertices = new Vector3f[2 * 3 * nSquares];
+        this.faceNormals = new Vector3f[3 * 2 * nSquares];
+        this.vertexNormals = new Vector3f[3 * 2 * nSquares];
 //		colour = new float[4 *3 * vertices.length];
 
         int v = 0;
+        int nfn = 0;
+        int nvn = 0;
         for (k = 0; k < depth - 1; k++) {
             for (int l = 0; l < width - 1; l++) {
                 float x = getX(k);
@@ -70,15 +74,65 @@ public class HeightMap extends SceneObject {
                 float y = height[k][l];
                 System.out.println("Square " + k + " " + l + " has coords " + x +
                         " " + z + " " + y);
-                //creating first triangle
-                vertices[v++] = new Vector3f(x, y, z);
-                vertices[v++] = new Vector3f(getX(k), height[k][l + 1], getZ(l + 1));
-                vertices[v++] = new Vector3f(getX(k + 1), height[k + 1][l], getZ(l));
+                float x1 = getX(k + 1);
+                float z1 = getZ(l + 1);
+                float ykl1 = height[k][l + 1];
+                float yk1l = height[k + 1][l];
+                {
+                    //creating first triangle
+                    Vector3f p0, p1, p2;
+                    p0 = vertices[v++] = new Vector3f(x, y, z);
+                    p1 = vertices[v++] = new Vector3f(x, ykl1, z1);
+                    p2 = vertices[v++] = new Vector3f(x1, yk1l, getZ(l));
 
-                //creating second triangle to make a square
-                vertices[v++] = new Vector3f(getX(k + 1), height[k + 1][l], getZ(l));
-                vertices[v++] = new Vector3f(getX(k), height[k][l + 1], getZ(l + 1));
-                vertices[v++] = new Vector3f(getX(k + 1), height[k + 1][l + 1], getZ(l + 1));
+                    // compute face normals using cross product
+                    Vector3f v10 = new Vector3f();
+                    Vector3f v20 = new Vector3f();
+
+                    p1.sub(p0, v10);    // v10 = p1 - p0
+                    p2.sub(p0, v20);    // v20 = p2 - p0
+                    Vector3f fn = new Vector3f();
+                    v10.cross(v20, fn);    // fn = v10 x v20;
+
+                    faceNormals[nfn++] = fn;
+                    faceNormals[nfn++] = fn;
+                    faceNormals[nfn++] = fn;
+
+                    // vertex normals point straight out
+
+                    vertexNormals[nvn++] = new Vector3f(x, 0, z).normalize();
+                    vertexNormals[nvn++] = new Vector3f(x, 0, z1).normalize();
+                    vertexNormals[nvn++] = new Vector3f(x1, 0, z).normalize();
+
+                }
+                {
+                    Vector3f p0, p1, p2;
+                    //creating second triangle to make a square
+                    p0 = vertices[v++] = new Vector3f(x1, yk1l, z);
+                    p1 = vertices[v++] = new Vector3f(x, ykl1, z1);
+                    float yk1l1 = height[k + 1][l + 1];
+                    p2 = vertices[v++] = new Vector3f(x1, yk1l1, z1);
+
+                    // compute face normals using cross product
+                    Vector3f v10 = new Vector3f();
+                    Vector3f v20 = new Vector3f();
+
+                    p1.sub(p0, v10);    // v10 = p1 - p0
+                    p2.sub(p0, v20);    // v20 = p2 - p0
+                    Vector3f fn = new Vector3f();
+                    v10.cross(v20, fn);    // fn = v10 x v20;
+
+                    faceNormals[nfn++] = fn;
+                    faceNormals[nfn++] = fn;
+                    faceNormals[nfn++] = fn;
+
+                    // vertex normals point straight out
+
+                    vertexNormals[nvn++] = new Vector3f(x1, 0, z).normalize();
+                    vertexNormals[nvn++] = new Vector3f(x, 0, z1).normalize();
+                    vertexNormals[nvn++] = new Vector3f(x1, 0, z1).normalize();
+
+                }
             }
         }
 
@@ -243,6 +297,9 @@ public class HeightMap extends SceneObject {
         return -1f + 0.5f * (2.0f / width) + 2.0f / width * k;
     }
 
+    public void setViewDir(Vector4f viewDir) {
+        this.viewDir.set(viewDir);
+    }
 
     @Override
     protected void drawSelf(Shader shader) {
@@ -257,8 +314,8 @@ public class HeightMap extends SceneObject {
         }
 
         if (shader.hasAttribute("a_normal")) {
+//            shader.setAttribute("a_normal", faceNormalBuffer);
             shader.setAttribute("a_normal", vertexNormalBuffer);
-//			shader.setAttribute("a_normal", faceNormalBuffer);
         }
 
         if (shader.hasUniform("u_normalMatrix")) {
