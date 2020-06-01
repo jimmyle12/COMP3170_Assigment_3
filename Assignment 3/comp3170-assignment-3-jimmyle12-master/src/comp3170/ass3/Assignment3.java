@@ -11,6 +11,8 @@ import java.io.IOException;
 import javax.swing.JFrame;
 
 import com.jogamp.opengl.util.Animator;
+import com.jogamp.opengl.util.texture.Texture;
+import com.jogamp.opengl.util.texture.TextureIO;
 import comp3170.ass3.sceneobjects.Light;
 import org.joml.Matrix4f;
 import org.joml.Vector4f;
@@ -42,6 +44,10 @@ public class Assignment3 extends JFrame implements GLEventListener {
 
 	private JSONObject level;
 	private GLCanvas canvas;
+
+	final private File TEXTURE_DIRECTORY = new File("src/comp3170/ass3/textures");
+	final private String GRASS_TEXTURE = "grass.jpg";
+	private int grassTexture;
 
 	// shaders
 	
@@ -84,6 +90,11 @@ public class Assignment3 extends JFrame implements GLEventListener {
 	private Shader specularFragmentLightingShader;
 	final private String SPECULAR_FRAGMENT_LIGHTING_VERTEX_SHADER = "specularFragmentLightingVertex.glsl";
 	final private String SPECULAR_FRAGMENT_LIGHTING_FRAGMENT_SHADER = "specularFragmentLightingFragment.glsl";
+
+	// texture shader
+	private Shader textureShader;
+	final private String TEXTURE_VERTEX_SHADER = "textureVertex.glsl";
+	final private String TEXTURE_FRAGMENT_SHADER = "textureFragment.glsl";
 
 	// matrices
 	
@@ -161,8 +172,6 @@ public class Assignment3 extends JFrame implements GLEventListener {
 
 		// enable depth testing and backface culling
 
-//		gl.glEnable(GL.GL_DEPTH_TEST);
-//		gl.glEnable(GL.GL_CULL_FACE);
 		gl.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT);
 		gl.glEnable(GL.GL_CULL_FACE);
 		gl.glCullFace(GL.GL_BACK);
@@ -178,6 +187,9 @@ public class Assignment3 extends JFrame implements GLEventListener {
 		this.diffuseVertexLightingShader = loadShader(DIFFUSE_VERTEX_LIGHTING_VERTEX_SHADER, DIFFUSE_VERTEX_LIGHTING_FRAGMENT_SHADER);
 		this.diffuseFragmentLightingShader = loadShader(DIFFUSE_FRAGMENT_LIGHTING_VERTEX_SHADER, DIFFUSE_FRAGMENT_LIGHTING_FRAGMENT_SHADER);
 		this.specularFragmentLightingShader = loadShader(SPECULAR_FRAGMENT_LIGHTING_VERTEX_SHADER, SPECULAR_FRAGMENT_LIGHTING_FRAGMENT_SHADER);
+		this.textureShader = loadShader(TEXTURE_VERTEX_SHADER, TEXTURE_FRAGMENT_SHADER);
+
+
 		// Allocate matrices
 
 		this.mvpMatrix = new Matrix4f();
@@ -214,6 +226,8 @@ public class Assignment3 extends JFrame implements GLEventListener {
 //		map2.setParent(this.root);
 		map2.localMatrix.scale(5,1,5);
 		map2.localMatrix.translate(1, 0, 1);
+
+		grassTexture = loadTexture(GRASS_TEXTURE);
 
 		this.cameraPivot = new SceneObject();
 		this.cameraPivot.setParent(this.root);
@@ -253,6 +267,29 @@ public class Assignment3 extends JFrame implements GLEventListener {
 		
 		// Unreachable
 		return null;
+	}
+
+	private int loadTexture(String textureFile) {
+		GL4 gl = (GL4) GLContext.getCurrentGL();
+
+		int textureID = 0;
+		try {
+			Texture tex = TextureIO.newTexture(new File(TEXTURE_DIRECTORY, textureFile), true);
+			textureID = tex.getTextureObject();
+		}
+		catch (IOException e) {
+			e.printStackTrace();
+			System.exit(1);
+		}
+
+		gl.glBindTexture(GL.GL_TEXTURE_2D, textureID);
+		gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR);
+		gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR_MIPMAP_LINEAR);
+		gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_S, GL.GL_REPEAT);
+		gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T, GL.GL_REPEAT);
+		gl.glGenerateMipmap(GL.GL_TEXTURE_2D);
+
+		return textureID;
 	}
 
 	private final float CAMERA_TURN = TAU/8;
