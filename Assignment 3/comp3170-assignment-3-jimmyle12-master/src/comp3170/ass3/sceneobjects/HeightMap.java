@@ -6,17 +6,22 @@ import com.jogamp.opengl.GLContext;
 import comp3170.SceneObject;
 import comp3170.Shader;
 import org.joml.Matrix3f;
+import org.joml.Vector2f;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
 import org.json.JSONArray;
 
 public class HeightMap extends SceneObject {
 
-    Vector3f[] vertices;
-    private int vertexBuffer;
 
     private final float TAU = (float) (Math.PI * 2);
     private final int N_DIVISIONS = 20;
+
+    private Vector3f[] vertices;
+    private int vertexBuffer;
+
+    private Vector2f[] uvs;
+    private int uvBuffer;
 
     private Vector3f[] faceNormals;
     private int faceNormalBuffer;
@@ -33,14 +38,17 @@ public class HeightMap extends SceneObject {
     private int width;
     private int depth;
 
+    private int texture;
+
     private Matrix3f normalMatrix;
     private Vector4f lightDir;
     private Vector4f viewDir;
 
-    public HeightMap(Shader shader, int width, int depth, JSONArray heightArray) {
+    public HeightMap(Shader shader, int width, int depth, JSONArray heightArray, int texture) {
         super(shader);
         this.width = width;
         this.depth = depth;
+        this.texture = texture;
 
         //
         // Load the array of heights from the JSONArray
@@ -62,11 +70,14 @@ public class HeightMap extends SceneObject {
         vertices = new Vector3f[2 * 3 * nSquares];
         this.faceNormals = new Vector3f[3 * 2 * nSquares];
         this.vertexNormals = new Vector3f[3 * 2 * nSquares];
+        uvs = new Vector2f[vertices.length];
 //		colour = new float[4 *3 * vertices.length];
+
 
         int v = 0;
         int nfn = 0;
         int nvn = 0;
+        int c = 0;
         for (k = 0; k < depth - 1; k++) {
             for (int l = 0; l < width - 1; l++) {
                 float x = getX(k);
@@ -82,8 +93,12 @@ public class HeightMap extends SceneObject {
                     //creating first triangle
                     Vector3f p0, p1, p2;
                     p0 = vertices[v++] = new Vector3f(x, y, z);
+                    uvs[c++] = new Vector2f(1, 0);
                     p1 = vertices[v++] = new Vector3f(x, ykl1, z1);
-                    p2 = vertices[v++] = new Vector3f(x1, yk1l, getZ(l));
+                    uvs[c++] = new Vector2f(0,0);
+                    p2 = vertices[v++] = new Vector3f(x1, yk1l, z);
+                    uvs[c++] = new Vector2f(0,1);
+
 
                     // compute face normals using cross product
                     Vector3f v10 = new Vector3f();
@@ -108,10 +123,14 @@ public class HeightMap extends SceneObject {
                 {
                     Vector3f p0, p1, p2;
                     //creating second triangle to make a square
-                    p0 = vertices[v++] = new Vector3f(x1, yk1l, z);
-                    p1 = vertices[v++] = new Vector3f(x, ykl1, z1);
                     float yk1l1 = height[k + 1][l + 1];
+                    p0 = vertices[v++] = new Vector3f(x1, yk1l, z);
+                    uvs[c++] = new Vector2f(0,1);
+                    p1 = vertices[v++] = new Vector3f(x, ykl1, z1);
+                    uvs[c++] = new Vector2f(1,0);
                     p2 = vertices[v++] = new Vector3f(x1, yk1l1, z1);
+                    uvs[c++] = new Vector2f(1,1);
+
 
                     // compute face normals using cross product
                     Vector3f v10 = new Vector3f();
@@ -144,136 +163,9 @@ public class HeightMap extends SceneObject {
         this.vertexNormalBuffer = shader.createBuffer(this.vertexNormals);
         this.vertexBuffer = shader.createBuffer(this.vertices);
         this.barycentricBuffer = shader.createBuffer(this.barycentric);
+        this.uvBuffer = shader.createBuffer(this.uvs);
     }
 
-    private void createVerticesAndNormals() {
-        int nTriangles = 2 * N_DIVISIONS + 2 * N_DIVISIONS;
-        this.vertices = new Vector3f[3 * nTriangles];
-        this.faceNormals = new Vector3f[3 * nTriangles];
-        this.vertexNormals = new Vector3f[3 * nTriangles];
-
-        Vector3f p0, p1, p2, fn;
-        Vector3f v10 = new Vector3f();
-        Vector3f v20 = new Vector3f();
-
-        // construct the curved side
-
-        int nv = 0;
-        int nfn = 0;
-        int nvn = 0;
-        for (int i = 0; i < N_DIVISIONS; i++) {
-            float a0 = i * TAU / N_DIVISIONS;
-            float x0 = (float) Math.cos(a0);
-            float y0 = 0;
-            float z0 = (float) Math.sin(a0);
-
-            float a1 = (i+1) * TAU / N_DIVISIONS;
-            float x1 = (float) Math.cos(a1);
-            float y1 = 1;
-            float z1 = (float) Math.sin(a1);
-
-            // Lower triangle
-
-            p0 = new Vector3f(x1, y1, z1);
-            p1 = new Vector3f(x1, y0, z1);
-            p2 = new Vector3f(x0, y0, z0);
-
-            vertices[nv++] = p0;
-            vertices[nv++] = p1;
-            vertices[nv++] = p2;
-
-            // compute face normals using cross product
-
-            p1.sub(p0, v10);	// v10 = p1 - p0
-            p2.sub(p0, v20);	// v20 = p2 - p0
-            fn = new Vector3f();
-            v10.cross(v20, fn);	// fn = v10 x v20;
-
-            faceNormals[nfn++] = fn;
-            faceNormals[nfn++] = fn;
-            faceNormals[nfn++] = fn;
-
-            // vertex normals point straight out
-
-            vertexNormals[nvn++] = new Vector3f(x1, 0, z1);
-            vertexNormals[nvn++] = new Vector3f(x1, 0, z1);
-            vertexNormals[nvn++] = new Vector3f(x0, 0, z0);
-
-            // Upper triangle
-
-            p0 = new Vector3f(x0, y0, z0);
-            p1 = new Vector3f(x0, y1, z0);
-            p2 = new Vector3f(x1, y1, z1);
-
-            vertices[nv++] = p0;
-            vertices[nv++] = p1;
-            vertices[nv++] = p2;
-
-            // compute face normals using cross product
-
-            p1.sub(p0, v10);	// v10 = p1 - p0
-            p2.sub(p0, v20);	// v20 = p2 - p0
-            fn = new Vector3f();
-            v10.cross(v20, fn);	// fn = v10 x v20;
-
-            faceNormals[nfn++] = fn;
-            faceNormals[nfn++] = fn;
-            faceNormals[nfn++] = fn;
-
-            // vertex normals point straight out
-
-            vertexNormals[nvn++] = new Vector3f(x0, 0, z0);
-            vertexNormals[nvn++] = new Vector3f(x0, 0, z0);
-            vertexNormals[nvn++] = new Vector3f(x1, 0, z1);
-
-        }
-
-        // construct the top and bottom
-
-        for (int i = 0; i < N_DIVISIONS; i++) {
-            float a0 = i * TAU / N_DIVISIONS;
-            float x0 = (float) Math.cos(a0);
-            float y0 = 0;
-            float z0 = (float) Math.sin(a0);
-
-            float a1 = (i+1) * TAU / N_DIVISIONS;
-            float x1 = (float) Math.cos(a1);
-            float y1 = 1;
-            float z1 = (float) Math.sin(a1);
-
-            // top
-
-            vertices[nv++] = new Vector3f(0, y1, 0);
-            vertices[nv++] = new Vector3f(x1, y1, z1);
-            vertices[nv++] = new Vector3f(x0, y1, z0);
-
-            // all normals point straight up
-
-            faceNormals[nfn++] = new Vector3f(0, 1, 0);
-            faceNormals[nfn++] = new Vector3f(0, 1, 0);
-            faceNormals[nfn++] = new Vector3f(0, 1, 0);
-
-            vertexNormals[nvn++] = new Vector3f(0, 1, 0);
-            vertexNormals[nvn++] = new Vector3f(0, 1, 0);
-            vertexNormals[nvn++] = new Vector3f(0, 1, 0);
-
-            // bottom
-
-            vertices[nv++] = new Vector3f(0, y0, 0);
-            vertices[nv++] = new Vector3f(x0, y0, z0);
-            vertices[nv++] = new Vector3f(x1, y0, z1);
-
-            // all normals point straight down
-
-            faceNormals[nfn++] = new Vector3f(0, -1, 0);
-            faceNormals[nfn++] = new Vector3f(0, -1, 0);
-            faceNormals[nfn++] = new Vector3f(0, -1, 0);
-
-            vertexNormals[nvn++] = new Vector3f(0, -1, 0);
-            vertexNormals[nvn++] = new Vector3f(0, -1, 0);
-            vertexNormals[nvn++] = new Vector3f(0, -1, 0);
-        }
-    }
 
     private void createBarycentric() {
         this.barycentric = new Vector3f[vertices.length];
@@ -318,6 +210,18 @@ public class HeightMap extends SceneObject {
             shader.setAttribute("a_normal", vertexNormalBuffer);
         }
 
+        if (shader.hasUniform("u_diffuseTexture")) {
+            shader.setUniform("u_diffuseTexture", 0);
+        }
+
+        if (shader.hasUniform("u_texture")) {
+            shader.setUniform("u_texture", 0);
+        }
+
+        if (shader.hasAttribute("a_texcoord")){
+            shader.setAttribute("a_texcoord", this.uvBuffer);
+        }
+
         if (shader.hasUniform("u_normalMatrix")) {
             getWorldMatrix(this.worldMatrix);
             this.worldMatrix.normal(this.normalMatrix);
@@ -329,13 +233,6 @@ public class HeightMap extends SceneObject {
             shader.setUniform("u_diffuseMaterial", this.colour);
         }
 
-        if (shader.hasUniform("u_specularMaterial")) {
-            shader.setUniform("u_specularMaterial", this.colour);
-        }
-
-        if (shader.hasUniform("u_specularity")) {
-            shader.setUniform("u_specularity", specularity);
-        }
 
         if (shader.hasUniform("u_lightDir")) {
             shader.setUniform("u_lightDir", this.lightDir);
@@ -344,6 +241,9 @@ public class HeightMap extends SceneObject {
         if (shader.hasUniform("u_viewDir")) {
             shader.setUniform("u_viewDir", this.viewDir);
         }
+
+        gl.glActiveTexture(GL.GL_TEXTURE0);
+        gl.glBindTexture(GL.GL_TEXTURE_2D, this.texture);
 
         gl.glDrawArrays(GL.GL_TRIANGLES, 0, this.vertices.length);
     }

@@ -13,7 +13,7 @@ import javax.swing.JFrame;
 import com.jogamp.opengl.util.Animator;
 import com.jogamp.opengl.util.texture.Texture;
 import com.jogamp.opengl.util.texture.TextureIO;
-import comp3170.ass3.sceneobjects.Light;
+import comp3170.ass3.sceneobjects.*;
 import org.joml.Matrix4f;
 import org.joml.Vector4f;
 import org.json.JSONArray;
@@ -33,9 +33,6 @@ import comp3170.GLException;
 import comp3170.InputManager;
 import comp3170.SceneObject;
 import comp3170.Shader;
-import comp3170.ass3.sceneobjects.Axes;
-import comp3170.ass3.sceneobjects.HeightMap;
-import comp3170.ass3.sceneobjects.Plane;
 
 public class Assignment3 extends JFrame implements GLEventListener {
 
@@ -123,7 +120,7 @@ public class Assignment3 extends JFrame implements GLEventListener {
 	private HeightMap map2;
 
 
-	public Assignment3(JSONObject level) {
+    public Assignment3(JSONObject level) {
 		super(level.getString("name"));
 		this.level = level;
 
@@ -218,16 +215,17 @@ public class Assignment3 extends JFrame implements GLEventListener {
 		int depth = jsonMap.getInt("depth");
 		JSONArray heights = jsonMap.getJSONArray("height");
 
-		map = new HeightMap(diffuseFragmentLightingShader, width, depth, heights);
-		map.setParent(this.root);
-		map.localMatrix.scale(5,1,5);
+        grassTexture = loadTexture(GRASS_TEXTURE);
 
-		map2 = new HeightMap(diffuseFragmentLightingShader, width, depth, heights);
+        map = new HeightMap(textureShader, width, depth, heights, grassTexture);
+        map.setParent(this.root);
+        map.localMatrix.scale(5,1,5);
+
+//        map2 = new HeightMap(diffuseFragmentLightingShader, width, depth, heights, 0);
 //		map2.setParent(this.root);
-		map2.localMatrix.scale(5,1,5);
-		map2.localMatrix.translate(1, 0, 1);
+//        map2.localMatrix.scale(5,1,5);
+//        map2.localMatrix.translate(1, 0, 1);
 
-		grassTexture = loadTexture(GRASS_TEXTURE);
 
 		this.cameraPivot = new SceneObject();
 		this.cameraPivot.setParent(this.root);
@@ -283,7 +281,7 @@ public class Assignment3 extends JFrame implements GLEventListener {
 		}
 
 		gl.glBindTexture(GL.GL_TEXTURE_2D, textureID);
-		gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR);
+		gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR_MIPMAP_LINEAR);
 		gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR_MIPMAP_LINEAR);
 		gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_S, GL.GL_REPEAT);
 		gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T, GL.GL_REPEAT);
@@ -376,8 +374,9 @@ public class Assignment3 extends JFrame implements GLEventListener {
 		this.lightDir.mul(this.lightMatrix);
 		map.setLightDir(lightDir);
 		map.setViewDir(viewDir);
-		map2.setLightDir(lightDir);
-		map2.setViewDir(viewDir);
+
+//		map2.setLightDir(lightDir);
+//		map2.setViewDir(viewDir);
 
 		input.clear();
 	}
