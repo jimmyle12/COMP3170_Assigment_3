@@ -1,5 +1,6 @@
 package comp3170.ass3;
 
+import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -117,15 +118,14 @@ public class Assignment3 extends JFrame implements GLEventListener {
 	private SceneObject lightPivot;
 	private Light light;
 	private HeightMap map;
-	private HeightMap map2;
+	private Water water;
 
-
-    public Assignment3(JSONObject level) {
+	public Assignment3(JSONObject level) {
 		super(level.getString("name"));
 		this.level = level;
 
 		// Set up GL Canvas
-		
+
 		GLProfile profile = GLProfile.get(GLProfile.GL4);
 		GLCapabilities capabilities = new GLCapabilities(profile);
 		capabilities.setSampleBuffers(true);
@@ -164,7 +164,7 @@ public class Assignment3 extends JFrame implements GLEventListener {
 	 */
 	public void init(GLAutoDrawable drawable) {
 		GL4 gl = (GL4) GLContext.getCurrentGL();
-		
+
 		// Enable flags
 
 		// enable depth testing and backface culling
@@ -176,7 +176,7 @@ public class Assignment3 extends JFrame implements GLEventListener {
 
 		// Load shaders
 
-		
+
 		this.simpleShader = loadShader(SIMPLE_VERTEX_SHADER, SIMPLE_FRAGMENT_SHADER);
 		this.colourShader = loadShader(COLOUR_VERTEX_SHADER, COLOUR_FRAGMENT_SHADER);
 		this.wireframeShader = loadShader(WIREFRAME_VERTEX_SHADER, WIREFRAME_FRAGMENT_SHADER);
@@ -193,9 +193,9 @@ public class Assignment3 extends JFrame implements GLEventListener {
 		this.viewMatrix = new Matrix4f();
 		this.projectionMatrix = new Matrix4f();
 		this.lightMatrix = new Matrix4f();
-		
+
 		// Construct the scene-graph
-		
+
 		this.root = new SceneObject();
 
 		// Example objects (should not be included in your final submission)
@@ -203,7 +203,7 @@ public class Assignment3 extends JFrame implements GLEventListener {
 		Plane plane = new Plane(this.simpleShader, 10);
 		plane.setParent(this.root);
 		plane.localMatrix.scale(5,5,5);
-//
+
 		Axes axes = new Axes(this.colourShader);
 		axes.setParent(this.root);
 		axes.localMatrix.translate(0,0.5f,0);
@@ -215,16 +215,18 @@ public class Assignment3 extends JFrame implements GLEventListener {
 		int depth = jsonMap.getInt("depth");
 		JSONArray heights = jsonMap.getJSONArray("height");
 
+		// Create water
+		float waterHeight = this.level.getFloat("waterHeight");
+		water = new Water(diffuseFragmentLightingShader, width, depth, waterHeight);
+		System.out.println(waterHeight);
+		water.setParent(this.root);
+		water.localMatrix.scale(5,1,5);
+
         grassTexture = loadTexture(GRASS_TEXTURE);
 
         map = new HeightMap(textureShader, width, depth, heights, grassTexture);
         map.setParent(this.root);
         map.localMatrix.scale(5,1,5);
-
-//        map2 = new HeightMap(diffuseFragmentLightingShader, width, depth, heights, 0);
-//		map2.setParent(this.root);
-//        map2.localMatrix.scale(5,1,5);
-//        map2.localMatrix.translate(1, 0, 1);
 
 
 		this.cameraPivot = new SceneObject();
@@ -244,13 +246,13 @@ public class Assignment3 extends JFrame implements GLEventListener {
 	}
 
 	/**
-	 * Load and compile a vertex shader and fragment shader 
-	 * 
+	 * Load and compile a vertex shader and fragment shader
+	 *
 	 * @param vs	The name of the vertex shader
 	 * @param fs	The name of the fragment shader
 	 * @return
 	 */
-	private Shader loadShader(String vs, String fs) {		
+	private Shader loadShader(String vs, String fs) {
 		try {
 			File vertexShader = new File(SHADER_DIRECTORY, vs);
 			File fragmentShader = new File(SHADER_DIRECTORY, fs);
@@ -262,7 +264,7 @@ public class Assignment3 extends JFrame implements GLEventListener {
 			e.printStackTrace();
 			System.exit(1);
 		}
-		
+
 		// Unreachable
 		return null;
 	}
@@ -290,17 +292,22 @@ public class Assignment3 extends JFrame implements GLEventListener {
 		return textureID;
 	}
 
+
 	private final float CAMERA_TURN = TAU/8;
 	private final float CAMERA_ZOOM = 1;
 	private float cameraYaw = 0;
 	private float cameraPitch = 0;
 	private float cameraDistance = 10;
 	private float cameraHeight = 1;
+	private float moveForward = 0;
 
-	private float cameraFOV = 10;
+	//	private float cameraFOV = 10;
 	private float cameraAspect = (float)screenWidth / screenHeight;
 	private float cameraNear = 0.1f;
 	private float cameraFar = 20.0f;
+
+	float cameraFOV = TAU / 8;
+
 	private Vector4f viewDir = new Vector4f();
 
 	private float lightDistance = 5;
@@ -330,14 +337,26 @@ public class Assignment3 extends JFrame implements GLEventListener {
 		}
 
 		if (this.input.isKeyDown(KeyEvent.VK_I)) {
-			this.cameraFOV -= CAMERA_ZOOM * dt;
+			this.cameraFOV -= 	CAMERA_ZOOM * dt;
 		}
 
 		if (this.input.isKeyDown(KeyEvent.VK_O)) {
 			this.cameraFOV += CAMERA_ZOOM * dt;
 		}
 
+
 		this.cameraPivot.localMatrix.identity();
+
+		if (this.input.isKeyDown(KeyEvent.VK_SPACE)) {
+			moveForward += 0.1f;
+		}
+		if (this.input.isKeyDown(KeyEvent.VK_ESCAPE)) {
+			moveForward = 0f;
+			cameraFOV = TAU / 8;
+		}
+		Vector4f moveDir = viewDir.normalize(new Vector4f());
+		moveDir.mul(moveForward);
+		this.cameraPivot.localMatrix.translate(moveDir.x, moveDir.y, moveDir.z);
 		this.cameraPivot.localMatrix.rotateY(cameraYaw);
 		this.cameraPivot.localMatrix.rotateX(cameraPitch);
 
@@ -372,11 +391,12 @@ public class Assignment3 extends JFrame implements GLEventListener {
 		this.lightDir.set(0,0,1,0);
 		this.light.getWorldMatrix(this.lightMatrix);
 		this.lightDir.mul(this.lightMatrix);
+
 		map.setLightDir(lightDir);
 		map.setViewDir(viewDir);
 
-//		map2.setLightDir(lightDir);
-//		map2.setViewDir(viewDir);
+		water.setLightDir(lightDir);
+		water.setViewDir(viewDir);
 
 		input.clear();
 	}
@@ -410,8 +430,9 @@ public class Assignment3 extends JFrame implements GLEventListener {
 		this.viewMatrix.invert();
 
 		// set the projection matrix
-		float width = cameraAspect * cameraFOV;
-		this.projectionMatrix.setOrtho(-width/2, width/2, -cameraFOV/2, cameraFOV/2, cameraFar, cameraNear);
+
+//		float width = cameraAspect * cameraFOV;
+		this.projectionMatrix.setPerspective(cameraFOV, cameraAspect, cameraNear, cameraFar);
 
 		// multiply the matrices together
 		this.mvpMatrix.identity();

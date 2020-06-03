@@ -65,7 +65,6 @@ public class HeightMap extends SceneObject {
         }
 
         int nSquares = (width - 1) * (depth - 1);
-        System.out.println("n squares = " + nSquares);
 
         vertices = new Vector3f[2 * 3 * nSquares];
         this.faceNormals = new Vector3f[3 * 2 * nSquares];
@@ -83,8 +82,7 @@ public class HeightMap extends SceneObject {
                 float x = getX(k);
                 float z = getZ(l);
                 float y = height[k][l];
-                System.out.println("Square " + k + " " + l + " has coords " + x +
-                        " " + z + " " + y);
+
                 float x1 = getX(k + 1);
                 float z1 = getZ(l + 1);
                 float ykl1 = height[k][l + 1];
@@ -94,9 +92,9 @@ public class HeightMap extends SceneObject {
                     Vector3f p0, p1, p2;
                     p0 = vertices[v++] = new Vector3f(x, y, z);
                     uvs[c++] = new Vector2f(1, 0);
-                    p1 = vertices[v++] = new Vector3f(x, ykl1, z1);
+                    p1 = vertices[v++] = new Vector3f(x1, yk1l, z);
                     uvs[c++] = new Vector2f(0,0);
-                    p2 = vertices[v++] = new Vector3f(x1, yk1l, z);
+                    p2 = vertices[v++] = new Vector3f(x, ykl1, z1);
                     uvs[c++] = new Vector2f(0,1);
 
 
@@ -115,9 +113,9 @@ public class HeightMap extends SceneObject {
 
                     // vertex normals point straight out
 
-                    vertexNormals[nvn++] = new Vector3f(x, 0, z).normalize();
-                    vertexNormals[nvn++] = new Vector3f(x, 0, z1).normalize();
+                    vertexNormals[nvn++] = new Vector3f(x, 0 , z).normalize();
                     vertexNormals[nvn++] = new Vector3f(x1, 0, z).normalize();
+                    vertexNormals[nvn++] = new Vector3f(x, 0, z1).normalize();
 
                 }
                 {
@@ -126,9 +124,9 @@ public class HeightMap extends SceneObject {
                     float yk1l1 = height[k + 1][l + 1];
                     p0 = vertices[v++] = new Vector3f(x1, yk1l, z);
                     uvs[c++] = new Vector2f(0,1);
-                    p1 = vertices[v++] = new Vector3f(x, ykl1, z1);
+                    p1 = vertices[v++] = new Vector3f(x1, yk1l1, z1);
                     uvs[c++] = new Vector2f(1,0);
-                    p2 = vertices[v++] = new Vector3f(x1, yk1l1, z1);
+                    p2 = vertices[v++] = new Vector3f(x, ykl1, z1);
                     uvs[c++] = new Vector2f(1,1);
 
 
@@ -148,8 +146,8 @@ public class HeightMap extends SceneObject {
                     // vertex normals point straight out
 
                     vertexNormals[nvn++] = new Vector3f(x1, 0, z).normalize();
-                    vertexNormals[nvn++] = new Vector3f(x, 0, z1).normalize();
                     vertexNormals[nvn++] = new Vector3f(x1, 0, z1).normalize();
+                    vertexNormals[nvn++] = new Vector3f(x, 0, z1).normalize();
 
                 }
             }
@@ -206,7 +204,6 @@ public class HeightMap extends SceneObject {
         }
 
         if (shader.hasAttribute("a_normal")) {
-//            shader.setAttribute("a_normal", faceNormalBuffer);
             shader.setAttribute("a_normal", vertexNormalBuffer);
         }
 
