@@ -67,12 +67,13 @@ public class Light extends SceneObject {
 
     private int vertexBuffer;
 
-    private float[] colour = { 1.0f, 1.0f, 0.0f, 1.0f }; // yellow
+    private float[] colour; // yellow
 
-    public Light(Shader shader) {
+    public Light(Shader shader, float[] colour) {
         super(shader);
 
         this.vertexBuffer = shader.createBuffer(this.vertices, GL4.GL_FLOAT_VEC3);
+        this.colour = colour;
     }
 
     @Override

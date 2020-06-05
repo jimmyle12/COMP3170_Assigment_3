@@ -33,7 +33,6 @@ public class HeightMap extends SceneObject {
     private int barycentricBuffer;
 
     private float[] colour = {0.1f, 0.8f, 0.1f};
-    private float specularity = 10;
 
     private int width;
     private int depth;
@@ -225,11 +224,13 @@ public class HeightMap extends SceneObject {
             shader.setUniform("u_normalMatrix", normalMatrix);
         }
 
+        if (shader.hasUniform("u_worldMatrix")) {
+            shader.setUniform("u_worldMatrix", worldMatrix);
+        }
 
         if (shader.hasUniform("u_diffuseMaterial")) {
             shader.setUniform("u_diffuseMaterial", this.colour);
         }
-
 
         if (shader.hasUniform("u_lightDir")) {
             shader.setUniform("u_lightDir", this.lightDir);

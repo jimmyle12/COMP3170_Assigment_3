@@ -18,6 +18,7 @@ void main() {
     // convert the normal to world coordinates
     vec3 normal = u_normalMatrix * a_normal;
 
+
     // interpolate to fragment normal
     v_normal = normal;    
 }

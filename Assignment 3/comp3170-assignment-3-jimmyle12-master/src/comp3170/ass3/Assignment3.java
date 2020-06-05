@@ -1,6 +1,5 @@
 package comp3170.ass3;
 
-import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -64,25 +63,10 @@ public class Assignment3 extends JFrame implements GLEventListener {
 	final private String NORMAL_VERTEX_SHADER = "normalVertex.glsl";
 	final private String NORMAL_FRAGMENT_SHADER = "normalFragment.glsl";
 
-	// wireframe
-	private Shader wireframeShader;
-	final private String WIREFRAME_VERTEX_SHADER = "wireframeVertex.glsl";
-	final private String WIREFRAME_FRAGMENT_SHADER = "wireframeFragment.glsl";
-
-	// diffuse lighting in vertex shader
-	private Shader diffuseVertexLightingShader;
-	final private String DIFFUSE_VERTEX_LIGHTING_VERTEX_SHADER = "diffuseVertexLightingVertex.glsl";
-	final private String DIFFUSE_VERTEX_LIGHTING_FRAGMENT_SHADER = "diffuseVertexLightingFragment.glsl";
-
 	// diffuse lighting in fragment shader
 	private Shader diffuseFragmentLightingShader;
 	final private String DIFFUSE_FRAGMENT_LIGHTING_VERTEX_SHADER = "diffuseFragmentLightingVertex.glsl";
 	final private String DIFFUSE_FRAGMENT_LIGHTING_FRAGMENT_SHADER = "diffuseFragmentLightingFragment.glsl";
-
-	// specular lighting in vertex shader
-	private Shader specularVertexLightingShader;
-	final private String SPECULAR_VERTEX_LIGHTING_VERTEX_SHADER = "specularVertexLightingVertex.glsl";
-	final private String SPECULAR_VERTEX_LIGHTING_FRAGMENT_SHADER = "specularVertexLightingFragment.glsl";
 
 	// specular lighting in fragement shader
 	private Shader specularFragmentLightingShader;
@@ -93,6 +77,11 @@ public class Assignment3 extends JFrame implements GLEventListener {
 	private Shader textureShader;
 	final private String TEXTURE_VERTEX_SHADER = "textureVertex.glsl";
 	final private String TEXTURE_FRAGMENT_SHADER = "textureFragment.glsl";
+
+	// phong shader
+	private Shader phongShader;
+	final private String PHONG_VERTEX_SHADER = "phongVertex.glsl";
+	final private String PHONG_FRAGMENT_SHADER = "phongFragment.glsl";
 
 	// matrices
 	
@@ -117,6 +106,7 @@ public class Assignment3 extends JFrame implements GLEventListener {
 	private SceneObject cameraPivot;
 	private SceneObject lightPivot;
 	private Light light;
+	private Light light2;
 	private HeightMap map;
 	private Water water;
 
@@ -173,18 +163,19 @@ public class Assignment3 extends JFrame implements GLEventListener {
 		gl.glEnable(GL.GL_CULL_FACE);
 		gl.glCullFace(GL.GL_BACK);
 		gl.glEnable(GL.GL_DEPTH_TEST);
+		gl.glEnable(GL.GL_BLEND);
+		gl.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA);
 
 		// Load shaders
 
 
 		this.simpleShader = loadShader(SIMPLE_VERTEX_SHADER, SIMPLE_FRAGMENT_SHADER);
 		this.colourShader = loadShader(COLOUR_VERTEX_SHADER, COLOUR_FRAGMENT_SHADER);
-		this.wireframeShader = loadShader(WIREFRAME_VERTEX_SHADER, WIREFRAME_FRAGMENT_SHADER);
 		this.normalShader = loadShader(NORMAL_VERTEX_SHADER, NORMAL_FRAGMENT_SHADER);
-		this.diffuseVertexLightingShader = loadShader(DIFFUSE_VERTEX_LIGHTING_VERTEX_SHADER, DIFFUSE_VERTEX_LIGHTING_FRAGMENT_SHADER);
 		this.diffuseFragmentLightingShader = loadShader(DIFFUSE_FRAGMENT_LIGHTING_VERTEX_SHADER, DIFFUSE_FRAGMENT_LIGHTING_FRAGMENT_SHADER);
 		this.specularFragmentLightingShader = loadShader(SPECULAR_FRAGMENT_LIGHTING_VERTEX_SHADER, SPECULAR_FRAGMENT_LIGHTING_FRAGMENT_SHADER);
 		this.textureShader = loadShader(TEXTURE_VERTEX_SHADER, TEXTURE_FRAGMENT_SHADER);
+		this.phongShader = loadShader(PHONG_VERTEX_SHADER, PHONG_FRAGMENT_SHADER);
 
 
 		// Allocate matrices
@@ -215,18 +206,17 @@ public class Assignment3 extends JFrame implements GLEventListener {
 		int depth = jsonMap.getInt("depth");
 		JSONArray heights = jsonMap.getJSONArray("height");
 
+		grassTexture = loadTexture(GRASS_TEXTURE);
+		map = new HeightMap(textureShader, width, depth, heights, grassTexture);
+		map.setParent(this.root);
+		map.localMatrix.scale(5,1,5);
+
 		// Create water
 		float waterHeight = this.level.getFloat("waterHeight");
-		water = new Water(diffuseFragmentLightingShader, width, depth, waterHeight);
-		System.out.println(waterHeight);
+		water = new Water(phongShader, width, depth, waterHeight);
 		water.setParent(this.root);
 		water.localMatrix.scale(5,1,5);
 
-        grassTexture = loadTexture(GRASS_TEXTURE);
-
-        map = new HeightMap(textureShader, width, depth, heights, grassTexture);
-        map.setParent(this.root);
-        map.localMatrix.scale(5,1,5);
 
 
 		this.cameraPivot = new SceneObject();
@@ -239,10 +229,14 @@ public class Assignment3 extends JFrame implements GLEventListener {
 		this.lightPivot = new SceneObject();
 		this.lightPivot.setParent(this.root);
 
-		this.light = new Light(simpleShader);
+		this.light = new Light(simpleShader, new float[]{1.0f, 1.0f, 0.0f, 1.0f});
 		this.light.setParent(this.lightPivot);
 		this.light.localMatrix.translate(0, 0, lightDistance);
 		this.light.localMatrix.scale(0.2f,0.2f,0.2f);
+
+		this.light2 = new Light(simpleShader, new float[]{1.0f, 1.0f, 1.0f, 1.0f});
+		this.light2.setParent(this.lightPivot);
+		this.light2.localMatrix.scale(0.1f,0.1f,0.1f);
 	}
 
 	/**
@@ -347,8 +341,11 @@ public class Assignment3 extends JFrame implements GLEventListener {
 
 		this.cameraPivot.localMatrix.identity();
 
-		if (this.input.isKeyDown(KeyEvent.VK_SPACE)) {
+		if (this.input.isKeyDown(KeyEvent.VK_SPACE) || input.isKeyDown(KeyEvent.VK_PLUS)) {
 			moveForward += 0.1f;
+		}
+		if (this.input.isKeyDown(KeyEvent.VK_MINUS)) {
+			moveForward -= 0.1f;
 		}
 		if (this.input.isKeyDown(KeyEvent.VK_ESCAPE)) {
 			moveForward = 0f;
