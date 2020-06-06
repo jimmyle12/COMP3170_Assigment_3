@@ -13,24 +13,14 @@ import org.json.JSONArray;
 
 public class HeightMap extends SceneObject {
 
-
-    private final float TAU = (float) (Math.PI * 2);
-    private final int N_DIVISIONS = 20;
-
     private Vector3f[] vertices;
     private int vertexBuffer;
 
     private Vector2f[] uvs;
     private int uvBuffer;
 
-    private Vector3f[] faceNormals;
-    private int faceNormalBuffer;
-
     private Vector3f[] vertexNormals;
     private int vertexNormalBuffer;
-
-    private Vector3f[] barycentric;
-    private int barycentricBuffer;
 
     private float[] colour = {0.1f, 0.8f, 0.1f};
 
@@ -49,10 +39,7 @@ public class HeightMap extends SceneObject {
         this.depth = depth;
         this.texture = texture;
 
-        //
         // Load the array of heights from the JSONArray
-        //
-
 
         float[][] height = new float[width][depth];
 
@@ -66,14 +53,11 @@ public class HeightMap extends SceneObject {
         int nSquares = (width - 1) * (depth - 1);
 
         vertices = new Vector3f[2 * 3 * nSquares];
-        this.faceNormals = new Vector3f[3 * 2 * nSquares];
         this.vertexNormals = new Vector3f[3 * 2 * nSquares];
         uvs = new Vector2f[vertices.length];
-//		colour = new float[4 *3 * vertices.length];
 
 
         int v = 0;
-        int nfn = 0;
         int nvn = 0;
         int c = 0;
         for (k = 0; k < depth - 1; k++) {
@@ -97,19 +81,6 @@ public class HeightMap extends SceneObject {
                     uvs[c++] = new Vector2f(0,1);
 
 
-                    // compute face normals using cross product
-                    Vector3f v10 = new Vector3f();
-                    Vector3f v20 = new Vector3f();
-
-                    p1.sub(p0, v10);    // v10 = p1 - p0
-                    p2.sub(p0, v20);    // v20 = p2 - p0
-                    Vector3f fn = new Vector3f();
-                    v10.cross(v20, fn);    // fn = v10 x v20;
-
-                    faceNormals[nfn++] = fn;
-                    faceNormals[nfn++] = fn;
-                    faceNormals[nfn++] = fn;
-
                     // vertex normals point straight out
 
                     vertexNormals[nvn++] = new Vector3f(x, 0 , z).normalize();
@@ -128,20 +99,6 @@ public class HeightMap extends SceneObject {
                     p2 = vertices[v++] = new Vector3f(x, ykl1, z1);
                     uvs[c++] = new Vector2f(1,1);
 
-
-                    // compute face normals using cross product
-                    Vector3f v10 = new Vector3f();
-                    Vector3f v20 = new Vector3f();
-
-                    p1.sub(p0, v10);    // v10 = p1 - p0
-                    p2.sub(p0, v20);    // v20 = p2 - p0
-                    Vector3f fn = new Vector3f();
-                    v10.cross(v20, fn);    // fn = v10 x v20;
-
-                    faceNormals[nfn++] = fn;
-                    faceNormals[nfn++] = fn;
-                    faceNormals[nfn++] = fn;
-
                     // vertex normals point straight out
 
                     vertexNormals[nvn++] = new Vector3f(x1, 0, z).normalize();
@@ -155,27 +112,9 @@ public class HeightMap extends SceneObject {
         this.lightDir = new Vector4f();
         this.viewDir = new Vector4f();
         this.normalMatrix = new Matrix3f();
-        createBarycentric();
-        this.faceNormalBuffer = shader.createBuffer(this.faceNormals);
         this.vertexNormalBuffer = shader.createBuffer(this.vertexNormals);
         this.vertexBuffer = shader.createBuffer(this.vertices);
-        this.barycentricBuffer = shader.createBuffer(this.barycentric);
         this.uvBuffer = shader.createBuffer(this.uvs);
-    }
-
-
-    private void createBarycentric() {
-        this.barycentric = new Vector3f[vertices.length];
-
-        Vector3f b0 = new Vector3f(1, 0, 0);
-        Vector3f b1 = new Vector3f(0, 1, 0);
-        Vector3f b2 = new Vector3f(0, 0, 1);
-
-        for (int i = 0; i < vertices.length; i += 3) {
-            barycentric[i] = b0;
-            barycentric[i + 1] = b1;
-            barycentric[i + 2] = b2;
-        }
     }
 
     private float getZ(int l) {
@@ -194,13 +133,8 @@ public class HeightMap extends SceneObject {
     protected void drawSelf(Shader shader) {
         GL4 gl = (GL4) GLContext.getCurrentGL();
 
-        // TODO: Complete this
-
         shader.setUniform("u_mvpMatrix", this.mvpMatrix);
         shader.setAttribute("a_position", this.vertexBuffer);
-        if (shader.hasAttribute("a_barycentric")) {
-            shader.setAttribute("a_barycentric", barycentricBuffer);
-        }
 
         if (shader.hasAttribute("a_normal")) {
             shader.setAttribute("a_normal", vertexNormalBuffer);

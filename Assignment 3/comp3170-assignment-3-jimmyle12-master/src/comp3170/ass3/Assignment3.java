@@ -58,21 +58,6 @@ public class Assignment3 extends JFrame implements GLEventListener {
 	final private String COLOUR_VERTEX_SHADER = "coloursVertex.glsl";
 	final private String COLOUR_FRAGMENT_SHADER = "coloursFragment.glsl";
 
-	// normal colouring
-	private Shader normalShader;
-	final private String NORMAL_VERTEX_SHADER = "normalVertex.glsl";
-	final private String NORMAL_FRAGMENT_SHADER = "normalFragment.glsl";
-
-	// diffuse lighting in fragment shader
-	private Shader diffuseFragmentLightingShader;
-	final private String DIFFUSE_FRAGMENT_LIGHTING_VERTEX_SHADER = "diffuseFragmentLightingVertex.glsl";
-	final private String DIFFUSE_FRAGMENT_LIGHTING_FRAGMENT_SHADER = "diffuseFragmentLightingFragment.glsl";
-
-	// specular lighting in fragement shader
-	private Shader specularFragmentLightingShader;
-	final private String SPECULAR_FRAGMENT_LIGHTING_VERTEX_SHADER = "specularFragmentLightingVertex.glsl";
-	final private String SPECULAR_FRAGMENT_LIGHTING_FRAGMENT_SHADER = "specularFragmentLightingFragment.glsl";
-
 	// texture shader
 	private Shader textureShader;
 	final private String TEXTURE_VERTEX_SHADER = "textureVertex.glsl";
@@ -106,7 +91,6 @@ public class Assignment3 extends JFrame implements GLEventListener {
 	private SceneObject cameraPivot;
 	private SceneObject lightPivot;
 	private Light light;
-	private Light light2;
 	private HeightMap map;
 	private Water water;
 	private Line line;
@@ -172,9 +156,6 @@ public class Assignment3 extends JFrame implements GLEventListener {
 
 		this.simpleShader = loadShader(SIMPLE_VERTEX_SHADER, SIMPLE_FRAGMENT_SHADER);
 		this.colourShader = loadShader(COLOUR_VERTEX_SHADER, COLOUR_FRAGMENT_SHADER);
-		this.normalShader = loadShader(NORMAL_VERTEX_SHADER, NORMAL_FRAGMENT_SHADER);
-		this.diffuseFragmentLightingShader = loadShader(DIFFUSE_FRAGMENT_LIGHTING_VERTEX_SHADER, DIFFUSE_FRAGMENT_LIGHTING_FRAGMENT_SHADER);
-		this.specularFragmentLightingShader = loadShader(SPECULAR_FRAGMENT_LIGHTING_VERTEX_SHADER, SPECULAR_FRAGMENT_LIGHTING_FRAGMENT_SHADER);
 		this.textureShader = loadShader(TEXTURE_VERTEX_SHADER, TEXTURE_FRAGMENT_SHADER);
 		this.phongShader = loadShader(PHONG_VERTEX_SHADER, PHONG_FRAGMENT_SHADER);
 
@@ -198,7 +179,6 @@ public class Assignment3 extends JFrame implements GLEventListener {
 
 		Axes axes = new Axes(this.colourShader);
 		axes.setParent(this.root);
-//		axes.localMatrix.translate(0,0.5f,0);
 
 		// Height map (incomplete)
 
@@ -218,8 +198,6 @@ public class Assignment3 extends JFrame implements GLEventListener {
 		water.setParent(this.root);
 		water.localMatrix.scale(5,5,5);
 
-
-
 		this.cameraPivot = new SceneObject();
 		this.cameraPivot.setParent(this.root);
 
@@ -234,10 +212,6 @@ public class Assignment3 extends JFrame implements GLEventListener {
 		this.light.setParent(this.lightPivot);
 		this.light.localMatrix.translate(0, 0, lightDistance);
 		this.light.localMatrix.scale(0.2f,0.2f,0.2f);
-
-//		this.light2 = new Light(simpleShader, new float[]{1.0f, 1.0f, 1.0f, 1.0f});
-//		this.light2.setParent(this.lightPivot);
-//		this.light2.localMatrix.scale(0.1f,0.1f,0.1f);
 
 		this.line = new Line(simpleShader, lightDir);
 		line.setParent(root);
@@ -335,7 +309,7 @@ public class Assignment3 extends JFrame implements GLEventListener {
 		}
 
 		if (this.input.isKeyDown(KeyEvent.VK_I)) {
-			this.cameraFOV -= 	CAMERA_ZOOM * dt;
+			this.cameraFOV -= CAMERA_ZOOM * dt;
 		}
 
 		if (this.input.isKeyDown(KeyEvent.VK_O)) {
@@ -386,9 +360,9 @@ public class Assignment3 extends JFrame implements GLEventListener {
 		this.lightPivot.localMatrix.identity();
 		this.lightPivot.localMatrix.rotateY(lightYaw);
 		this.lightPivot.localMatrix.rotateX(lightPitch);
-//
-//		// calculate the light direction
-//
+
+		// calculate the light direction
+
 		this.lightDir.set(0,0,1,0);
 		this.light.getWorldMatrix(this.lightMatrix);
 		this.lightDir.mul(this.lightMatrix);
@@ -435,7 +409,6 @@ public class Assignment3 extends JFrame implements GLEventListener {
 
 		// set the projection matrix
 
-//		float width = cameraAspect * cameraFOV;
 		this.projectionMatrix.setPerspective(cameraFOV, cameraAspect, cameraNear, cameraFar);
 
 		// multiply the matrices together

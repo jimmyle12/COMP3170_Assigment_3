@@ -21,7 +21,6 @@ public class Line extends SceneObject {
 
 		this.setLightDir(dest);
 
-
 	}
 
 
