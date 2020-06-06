@@ -109,6 +109,7 @@ public class Assignment3 extends JFrame implements GLEventListener {
 	private Light light2;
 	private HeightMap map;
 	private Water water;
+	private Line line;
 
 	public Assignment3(JSONObject level) {
 		super(level.getString("name"));
@@ -197,7 +198,7 @@ public class Assignment3 extends JFrame implements GLEventListener {
 
 		Axes axes = new Axes(this.colourShader);
 		axes.setParent(this.root);
-		axes.localMatrix.translate(0,0.5f,0);
+//		axes.localMatrix.translate(0,0.5f,0);
 
 		// Height map (incomplete)
 
@@ -213,9 +214,9 @@ public class Assignment3 extends JFrame implements GLEventListener {
 
 		// Create water
 		float waterHeight = this.level.getFloat("waterHeight");
-		water = new Water(phongShader, width, depth, waterHeight);
+		water = new Water(phongShader, width, depth, waterHeight/5);
 		water.setParent(this.root);
-		water.localMatrix.scale(5,1,5);
+		water.localMatrix.scale(5,5,5);
 
 
 
@@ -234,9 +235,12 @@ public class Assignment3 extends JFrame implements GLEventListener {
 		this.light.localMatrix.translate(0, 0, lightDistance);
 		this.light.localMatrix.scale(0.2f,0.2f,0.2f);
 
-		this.light2 = new Light(simpleShader, new float[]{1.0f, 1.0f, 1.0f, 1.0f});
-		this.light2.setParent(this.lightPivot);
-		this.light2.localMatrix.scale(0.1f,0.1f,0.1f);
+//		this.light2 = new Light(simpleShader, new float[]{1.0f, 1.0f, 1.0f, 1.0f});
+//		this.light2.setParent(this.lightPivot);
+//		this.light2.localMatrix.scale(0.1f,0.1f,0.1f);
+
+		this.line = new Line(simpleShader, lightDir);
+		line.setParent(root);
 	}
 
 	/**
@@ -298,7 +302,7 @@ public class Assignment3 extends JFrame implements GLEventListener {
 	//	private float cameraFOV = 10;
 	private float cameraAspect = (float)screenWidth / screenHeight;
 	private float cameraNear = 0.1f;
-	private float cameraFar = 20.0f;
+	private float cameraFar = 120.0f;
 
 	float cameraFOV = TAU / 8;
 
@@ -388,6 +392,9 @@ public class Assignment3 extends JFrame implements GLEventListener {
 		this.lightDir.set(0,0,1,0);
 		this.light.getWorldMatrix(this.lightMatrix);
 		this.lightDir.mul(this.lightMatrix);
+		this.lightDir.mul(lightDistance / 0.2f);
+
+		line.setLightDir(lightDir);
 
 		map.setLightDir(lightDir);
 		map.setViewDir(viewDir);
@@ -464,6 +471,7 @@ public class Assignment3 extends JFrame implements GLEventListener {
 	 */
 	public static void main(String[] args) throws IOException, GLException {
 		File levelFile = new File(args[0]);
+		System.out.println(levelFile.getAbsolutePath());
 		BufferedReader in = new BufferedReader(new FileReader(levelFile));
 		JSONTokener tokener = new JSONTokener(in);
 		JSONObject level = new JSONObject(tokener);

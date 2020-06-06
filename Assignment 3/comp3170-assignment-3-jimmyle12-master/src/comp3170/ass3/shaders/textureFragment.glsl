@@ -18,6 +18,7 @@ const float GAMMA = 2.2;
 void main() {
     // make sure the lightDir and normal have length 1
     vec3 normal = normalize(v_normal);
+//    vec3 lightDir = normalize(u_lightDir.xyz - FragPos);
     vec3 lightDir = normalize(u_lightDir.xyz);
 
     vec4 dColor = texture(u_diffuseTexture, v_texcoord);
